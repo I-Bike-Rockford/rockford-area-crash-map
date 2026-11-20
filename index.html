@@ -1,0 +1,1169 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#fcfbf9">
+<title>Rockford Area Crash Map</title>
+<meta name="description" content="Fatal and serious-injury crashes in Rockford and Winnebago County, Illinois, from Illinois Department of Transportation crash data: Rockford 2006–2025, the rest of the county 2014–2025. An initiative of I Bike Rockford.">
+<meta property="og:title" content="Rockford Area Crash Map">
+<meta property="og:description" content="Fatal and serious-injury crashes in Rockford and Winnebago County, Illinois.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='12' fill='%23C8553D' stroke='%231f2328' stroke-width='3'/%3E%3Ccircle cx='16' cy='16' r='4' fill='white'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body class="is-map">
+<a class="skip" href="#panel">Skip to filters</a>
+
+<header class="hdr">
+  <a class="brand" href="#" aria-label="Rockford Area Crash Map, home"><b>Rockford Area Crash Map</b><span>Fatal and serious crashes, Winnebago County</span></a>
+  <nav class="nav" aria-label="Main">
+    <a href="#" data-v="">Map</a><a href="#network" data-v="network">Street risk</a><a href="#about" data-v="about">About the data</a><a href="#data" data-v="data">Data</a><a href="#contact" data-v="contact">Contact</a>
+  </nav>
+  <form class="search" id="search" role="search">
+    <label class="sr" for="q">Search for an address in Winnebago County</label>
+    <input id="q" type="search" placeholder="Search an address" autocomplete="off" enterkeyhint="search">
+    <ul class="sug" id="sug" role="listbox" aria-label="Address suggestions" hidden></ul>
+    <button type="submit">Go</button>
+    <div class="search-msg" id="search-msg" role="status" hidden></div>
+  </form>
+</header>
+
+<div id="map" role="region" aria-label="Map of crashes"></div>
+<div class="loading" id="loading" role="status" hidden>Loading crashes…</div>
+
+<aside class="panel" id="panel" aria-label="Filters and totals" data-open="false">
+  <button type="button" class="sheet-handle" id="sheet-handle" aria-expanded="false" aria-controls="panel"><i></i><span id="sheet-summary">Loading…</span></button>
+
+  <div class="sec" id="area-sec">
+    <h2><label for="area">Area</label></h2>
+    <select id="area" class="sel"><option value="Rockford">Rockford</option></select>
+    <p class="lede" id="area-note" style="margin-top:6px;font-size:12.5px"></p>
+  </div>
+
+  <div class="sec">
+    <h2>Who was involved</h2>
+    <div class="seg" id="modes" role="group" aria-label="Filter by mode">
+      <button type="button" data-mode="all" aria-pressed="true">All</button>
+      <button type="button" data-mode="ped" aria-pressed="false"><svg class="sw" viewBox="0 0 30 30" aria-hidden="true"><circle cx="15" cy="15" r="11" fill="#C8553D"/></svg>Walking</button>
+      <button type="button" data-mode="bike" aria-pressed="false"><svg class="sw" viewBox="0 0 30 30" aria-hidden="true"><polygon points="15,2.5 27.5,15 15,27.5 2.5,15" fill="#2A7F8E"/></svg>Biking</button>
+      <button type="button" data-mode="veh" aria-pressed="false"><svg class="sw" viewBox="0 0 30 30" aria-hidden="true"><rect x="4.5" y="4.5" width="21" height="21" rx="4.5" fill="#5B5F97"/></svg>Vehicle</button>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h2>Totals for these filters</h2>
+    <div class="tiles">
+      <div class="tile"><b id="t-n">–</b><span>Crashes</span></div>
+      <div class="tile"><b id="t-fatal">–</b><span>Fatal crashes</span></div>
+      <div class="tile"><b id="t-killed">–</b><span>People killed</span></div>
+      <div class="tile"><b id="t-serious">–</b><span>Serious injury crashes</span></div>
+      <div class="tile"><b id="t-ped">–</b><span>Involving a person walking</span></div>
+      <div class="tile"><b id="t-bike">–</b><span>Involving a person biking</span></div>
+    </div>
+    <p class="yrnote"><b id="yrnote-text"></b> <button type="button" class="btn small" id="yrnote-all">Show all years</button></p>
+    <p class="status" id="status" role="status" aria-live="polite" style="margin:8px 0 0"></p>
+    <div class="empty" id="empty" hidden>No crashes match these filters.<br><button type="button" class="btn small" id="empty-reset" style="margin-top:8px">Reset filters</button></div>
+  </div>
+
+  <div class="sec">
+    <h2>Severity</h2>
+    <div class="chips" id="sevs" role="group" aria-label="Filter by severity">
+      <button type="button" class="chip" data-s="0" aria-pressed="true">Fatal</button>
+      <button type="button" class="chip" data-s="1" aria-pressed="true">Serious</button>
+      <button type="button" class="chip" data-s="2" aria-pressed="false">Minor</button>
+      <button type="button" class="chip" data-s="3" aria-pressed="false">Possible</button>
+      <button type="button" class="chip" data-s="4" aria-pressed="false">No injury</button>
+    </div>
+    <p class="lede" id="sevnote" style="margin-top:6px;font-size:12.5px">Minor, possible and no-injury crashes (about 105,000 across the county) load when you turn one on.</p>
+  </div>
+
+  <div class="sec">
+    <h2><span>Year</span><span class="row" style="gap:6px"><button type="button" class="btn small" id="yr-5">Last 5 years</button><button type="button" class="btn small" id="yr-all">All years</button></span></h2>
+    <div class="bars" id="bars-years" role="group" aria-label="Crashes by year. Select years to filter."></div>
+    <div class="key"><span><i style="background:#23272c"></i>Fatal</span><span><i style="background:#a9a59b"></i>Serious injury</span><span><i style="background:#d9d5cb"></i>Other severities</span></div>
+  </div>
+
+  <div class="sec">
+    <h2>Time of day</h2>
+    <div class="bars" id="bars-hours" role="group" aria-label="Crashes by time of day. Select times to filter."></div>
+  </div>
+
+  <div class="sec">
+    <h2>Road</h2>
+    <p class="subh">Type of road</p>
+    <div class="chips" id="rcs" role="group" aria-label="Filter by type of road">
+      <button type="button" class="chip" data-r="0" aria-pressed="false">Interstate / freeway</button>
+      <button type="button" class="chip" data-r="1" aria-pressed="false">Principal arterial</button>
+      <button type="button" class="chip" data-r="2" aria-pressed="false">Minor arterial</button>
+      <button type="button" class="chip" data-r="3" aria-pressed="false">Collector</button>
+      <button type="button" class="chip" data-r="4" aria-pressed="false">Local street</button>
+    </div>
+    <p class="subh">Who owns the road</p>
+    <div class="chips" id="ows" role="group" aria-label="Filter by road owner">
+      <button type="button" class="chip" data-w="0" aria-pressed="false">State (IDOT)</button>
+      <button type="button" class="chip" data-w="1" aria-pressed="false">County</button>
+      <button type="button" class="chip" data-w="2" aria-pressed="false">Municipal</button>
+      <button type="button" class="chip" data-w="3" aria-pressed="false">Township</button>
+      <button type="button" class="chip" data-w="4" aria-pressed="false">Toll, private and other</button>
+    </div>
+    <p class="lede" style="margin-top:6px;font-size:12.5px">Each crash is matched to the nearest mapped road. Choose none to see all.</p>
+  </div>
+
+  <div class="sec">
+    <h2>Map options</h2>
+    <div class="switch"><input type="checkbox" id="sw-roads" checked><label for="sw-roads">Show arterial roads by owner<small>Thicker gray lines are state roads, thinner lines are county, then municipal, township and other roads.</small></label></div>
+    <div class="switch"><input type="checkbox" id="sw-hin"><label for="sw-hin">Show high-injury network<small>Stretches of street with repeated fatal and serious crashes, 2021–2025. It does not change with the filters. <a href="#network">How it was made</a></small></label></div>
+    <p class="lede" id="hin-na" style="margin:-4px 0 10px;font-size:12.5px" hidden></p>
+    <div class="seg" id="hin-mode" role="group" aria-label="High-injury network type" hidden style="margin:0 0 10px"><button type="button" data-hin="all" aria-pressed="true">All crashes</button><button type="button" data-hin="pb" aria-pressed="false">Walking and biking</button></div>
+    <div class="switch"><input type="checkbox" id="sw-out" checked><label for="sw-out">Show crashes outside the chosen area<small>Shown faded, for context.</small></label></div>
+    <div class="switch"><input type="checkbox" id="sw-count"><label for="sw-count">Count them in the totals<small>Off by default, so totals describe only the chosen area.</small></label></div>
+    <div class="switch"><input type="checkbox" id="sw-extent"><label for="sw-extent">Only count crashes in the current map view<small>Totals and charts follow where you pan and zoom.</small></label></div>
+  </div>
+
+  <div class="sec">
+    <h2>How to read the map</h2>
+    <div class="legend" aria-label="Legend">
+      <div><svg width="22" height="22" viewBox="0 0 30 30" aria-hidden="true"><circle cx="15" cy="15" r="11" fill="#C8553D" stroke="#fff" stroke-width="2"/></svg>Person walking</div>
+      <div><svg width="22" height="22" viewBox="0 0 30 30" aria-hidden="true"><polygon points="15,2.5 27.5,15 15,27.5 2.5,15" fill="#2A7F8E" stroke="#fff" stroke-width="2"/></svg>Person bicycling</div>
+      <div><svg width="22" height="22" viewBox="0 0 30 30" aria-hidden="true"><rect x="4.5" y="4.5" width="21" height="21" rx="4.5" fill="#5B5F97" stroke="#fff" stroke-width="2"/></svg>Other / vehicle</div>
+      <div><svg width="26" height="26" viewBox="0 0 30 30" aria-hidden="true"><circle cx="15" cy="15" r="11" fill="#777" stroke="#111" stroke-width="3"/><circle cx="15" cy="15" r="3.6" fill="#fff"/></svg>Large, dark ring, white dot: fatal</div>
+      <div><svg width="20" height="20" viewBox="0 0 30 30" aria-hidden="true"><circle cx="15" cy="15" r="11" fill="#777" stroke="#fff" stroke-width="2"/></svg>Smaller: serious injury</div>
+      <div><svg width="22" height="22" viewBox="0 0 30 30" aria-hidden="true" style="opacity:.35"><circle cx="15" cy="15" r="11" fill="#777"/></svg>Faded: outside the chosen area</div>
+      <div data-hinleg><svg width="34" height="14" viewBox="0 0 34 14" aria-hidden="true"><line x1="2" y1="7" x2="32" y2="7" stroke="#D9730D" stroke-width="4" stroke-linecap="round"/></svg>High-injury network, tier 1 (3 or more)</div>
+      <div data-hinleg><svg width="34" height="14" viewBox="0 0 34 14" aria-hidden="true"><line x1="2" y1="7" x2="32" y2="7" stroke="#F0B429" stroke-width="4" stroke-linecap="round"/></svg><span id="hl-t2">High-injury network, tier 2 (exactly 2)</span></div>
+      <div data-hinleg><svg width="34" height="14" viewBox="0 0 34 14" aria-hidden="true"><line x1="2" y1="7" x2="32" y2="7" stroke="#7E3A9E" stroke-width="4" stroke-linecap="round"/></svg>Walking and biking network (2 or more)</div>
+      <div style="grid-column:1/-1">A number on a point means several crashes are recorded at the same spot. Tap it to see them all.</div>
+    </div>
+  </div>
+
+  <div class="sec">
+    <h2>Map style</h2>
+    <div class="basemaps" id="bases" role="group" aria-label="Map style">
+      <button type="button" class="btn small" data-base="light" aria-pressed="true">Light</button>
+      <button type="button" class="btn small" data-base="sat" aria-pressed="false">Satellite</button>
+    </div>
+    <div class="row" style="margin-top:12px"><button type="button" class="btn" id="btn-table">View as a table</button><button type="button" class="btn" id="btn-reset">Reset filters</button><button type="button" class="btn" id="btn-copy">Copy link</button></div>
+    <p class="status" id="copy-msg" role="status" aria-live="polite" style="margin:8px 0 0"></p>
+  </div>
+</aside>
+
+<div class="tview" id="tview" hidden></div>
+
+<section class="view" id="view-network" hidden aria-labelledby="network-h"><article class="doc">
+<a class="back" href="#">← Back to the map</a>
+<h1 id="network-h">High-injury network and crash rates</h1>
+<p>Two questions come up whenever people look at a crash map. Where are fatal and serious crashes concentrated, and how do crash rates compare between types of streets? This page answers both for the whole county and for each municipality, and shows the numbers. Choose an area on the map to see its stretches.</p>
+<h2>What we found</h2>
+<ul>
+<li><strong>A small share of streets accounts for a large share of fatal and serious crashes.</strong> Across Winnebago County, 40.5 miles of road (1.7% of 2,402 road miles) account for 38% of fatal and serious crashes. Adding a second tier, 85.7 miles (3.6%) account for 60%.</li>
+<li><strong>Arterials are far more dangerous per mile than other roadway classifications.</strong> A mile of principal arterial had about 42 times as many fatal and serious crashes as a mile of local street.</li>
+<li><strong>State-owned roads stand out.</strong> They are 8% of the county's road miles and had 28% of fatal and serious crashes.</li>
+<li><strong>Most of the high-injury network is on arterials.</strong> 77% of the high-injury network's length is classified as principal or minor arterial. Of those arterials, 39% are state-owned, 21% are county-owned and 40% are municipal.</li>
+<li><strong>The high-injury network includes most fatal and serious crashes involving a person walking or biking.</strong> 71 of the 103 fatal and serious walking and biking crashes (69%) happened on the high-injury network, as did 101 of the 161 fatal crashes (63%).</li>
+<li><strong>Walking and biking crashes are concentrated in a few stretches.</strong> 13 half-mile stretches, 0.3% of road miles, account for 32% of fatal and serious crashes involving a person walking or biking.</li>
+</ul>
+<h2>The high-injury network on the map</h2>
+<p>Turn on <strong>Show high-injury network</strong> under <em>Map options</em>. It shows the stretches for the area you have chosen, as an orange, gold or plum line over the gray road lines.</p>
+<ul>
+<li><strong>Tier 1 (orange).</strong> Half-mile stretches of street with <strong>3 or more</strong> fatal or serious crashes in the five years.</li>
+<li><strong>Tier 2 (gold).</strong> Half-mile stretches with <strong>exactly 2</strong> such crashes, after Tier 1 is set aside. Where an area has no Tier 1 stretch, the map calls its Tier 2 stretches <strong>corridors of concern</strong>.</li>
+<li><strong>Walking and biking view (plum).</strong> Half-mile stretches with <strong>2 or more</strong> fatal or serious crashes involving a person walking or biking.</li>
+</ul>
+<p>The same thresholds apply everywhere, so a high-injury network stretch in a smaller community is defined the same way as one in Rockford. That keeps the tiers consistent, but smaller communities will have few or no stretches. The network is fixed to 2021–2025 and does not change when you use the year filter.</p>
+<p>Stretches are built from the whole county's road layer, then assigned to the municipality or unincorporated area where most of their crashes happened. A stretch that crosses a boundary, such as a road running from Rockford into Loves Park, counts all of its crashes.</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th></th>
+<th>Half-mile stretches</th>
+<th>Road miles</th>
+<th>Share of county road miles</th>
+<th>Fatal and serious crashes covered</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Tier 1</td>
+<td>81</td>
+<td>40.5</td>
+<td>1.7%</td>
+<td>304 of 806 (38%)</td>
+</tr>
+<tr>
+<td>Tier 1 and 2</td>
+<td>172</td>
+<td>85.7</td>
+<td>3.6%</td>
+<td>486 of 806 (60%)</td>
+</tr>
+<tr>
+<td>Walking and biking</td>
+<td>13</td>
+<td>6.2</td>
+<td>0.3%</td>
+<td>33 of 103 (32%)</td>
+</tr>
+</tbody>
+</table></div>
+<h3>By municipality and unincorporated area</h3>
+<p>Crashes are counted by where they happened, using municipal boundaries, not the city name in IDOT's record. Rates are fatal and serious crashes per centerline mile per year.</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Area</th>
+<th>Fatal and serious crashes</th>
+<th>Fatal</th>
+<th>Road miles</th>
+<th>Crashes per mile per year</th>
+<th>Tier 1 stretches</th>
+<th>Tier 2 stretches</th>
+<th>Walking and biking stretches</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Rockford</td>
+<td>404</td>
+<td>93</td>
+<td>799.4</td>
+<td>0.10</td>
+<td>43</td>
+<td>43</td>
+<td>13</td>
+</tr>
+<tr>
+<td>Loves Park</td>
+<td>91</td>
+<td>8</td>
+<td>146.6</td>
+<td>0.12</td>
+<td>15</td>
+<td>9</td>
+<td>0</td>
+</tr>
+<tr>
+<td>Machesney Park</td>
+<td>54</td>
+<td>8</td>
+<td>145.1</td>
+<td>0.07</td>
+<td>7</td>
+<td>3</td>
+<td>0</td>
+</tr>
+<tr>
+<td>Roscoe</td>
+<td>22</td>
+<td>2</td>
+<td>79.8</td>
+<td>0.06</td>
+<td>0</td>
+<td>6 (corridors of concern)</td>
+<td>0</td>
+</tr>
+<tr>
+<td>South Beloit</td>
+<td>17</td>
+<td>3</td>
+<td>61.8</td>
+<td>0.06</td>
+<td>2</td>
+<td>1</td>
+<td>0</td>
+</tr>
+<tr>
+<td>Cherry Valley</td>
+<td>16</td>
+<td>3</td>
+<td>38.2</td>
+<td>0.08</td>
+<td>1</td>
+<td>4</td>
+<td>0</td>
+</tr>
+<tr>
+<td>Rockton</td>
+<td>7</td>
+<td>0</td>
+<td>54.6</td>
+<td>0.03</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>Winnebago</td>
+<td>3</td>
+<td>0</td>
+<td>22.8</td>
+<td>0.03</td>
+<td>1</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>New Milford</td>
+<td>3</td>
+<td>1</td>
+<td>14.5</td>
+<td>0.04</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>Pecatonica</td>
+<td>0</td>
+<td>0</td>
+<td>15.4</td>
+<td>0.00</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>Durand</td>
+<td>0</td>
+<td>0</td>
+<td>11.2</td>
+<td>0.00</td>
+<td>0</td>
+<td>0</td>
+<td>0</td>
+</tr>
+<tr>
+<td>Unincorporated Winnebago County</td>
+<td>208</td>
+<td>43</td>
+<td>1,012.2</td>
+<td>0.04</td>
+<td>11</td>
+<td>25</td>
+<td>0</td>
+</tr>
+<tr>
+<td><strong>Winnebago County</strong></td>
+<td><strong>825</strong></td>
+<td><strong>161</strong></td>
+<td><strong>2,401.6</strong></td>
+<td><strong>0.07</strong></td>
+<td><strong>81</strong></td>
+<td><strong>91</strong></td>
+<td><strong>13</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>Smaller communities typically have fewer crashes. Pecatonica and Durand had none in these five years, and New Milford and Winnebago had three each, so a single crash changes their numbers noticeably. Read these rows as counts of what happened, not as a ranking of communities.</p>
+<h3>The 10 half-mile stretches with the most fatal and serious crashes</h3>
+<p>Ranked by fatal and serious crashes, 2021–2025. Where a street appears more than once, each row is a different stretch of it.</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Rank</th>
+<th>Stretch</th>
+<th>Area</th>
+<th>Fatal and serious crashes</th>
+<th>Fatal</th>
+<th>Involving walking or biking</th>
+<th>Crashes per mile per year</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>Riverside Blvd from Alpine Rd to Material Ave</td>
+<td>Loves Park</td>
+<td>7</td>
+<td>2</td>
+<td>0</td>
+<td>2.8</td>
+</tr>
+<tr>
+<td>2</td>
+<td>Forest Hills Rd from Range Rd to Devon Ave</td>
+<td>Loves Park</td>
+<td>7</td>
+<td>0</td>
+<td>0</td>
+<td>2.8</td>
+</tr>
+<tr>
+<td>3</td>
+<td>Blackhawk Blvd from Church St to Jefferson St</td>
+<td>Rockford</td>
+<td>6</td>
+<td>2</td>
+<td>0</td>
+<td>2.4</td>
+</tr>
+<tr>
+<td>4</td>
+<td>11th St from Reed Ave to Hamilton Ave</td>
+<td>Rockford</td>
+<td>6</td>
+<td>1</td>
+<td>2</td>
+<td>2.4</td>
+</tr>
+<tr>
+<td>5</td>
+<td>Riverside Blvd from Mulford Rd to Applewood Ln</td>
+<td>Loves Park</td>
+<td>6</td>
+<td>1</td>
+<td>1</td>
+<td>2.4</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Forest Hills Rd near Park Terrace Dr</td>
+<td>Unincorporated</td>
+<td>6</td>
+<td>1</td>
+<td>0</td>
+<td>2.4</td>
+</tr>
+<tr>
+<td>7</td>
+<td>State St from Calvin Park Blvd to Fairview Ave</td>
+<td>Rockford</td>
+<td>6</td>
+<td>0</td>
+<td>0</td>
+<td>2.4</td>
+</tr>
+<tr>
+<td>8</td>
+<td>Windsor Rd from Alpine Rd to Forest Hills Rd</td>
+<td>Loves Park</td>
+<td>6</td>
+<td>0</td>
+<td>0</td>
+<td>2.4</td>
+</tr>
+<tr>
+<td>9</td>
+<td>State St from Alpine Rd to Rockford College Dr</td>
+<td>Rockford</td>
+<td>5</td>
+<td>3</td>
+<td>3</td>
+<td>2.0</td>
+</tr>
+<tr>
+<td>10</td>
+<td>Central Ave from Auburn St to School St</td>
+<td>Rockford</td>
+<td>5</td>
+<td>2</td>
+<td>3</td>
+<td>2.0</td>
+</tr>
+</tbody>
+</table></div>
+<p>Several stretches tie, so the order within a tie is not meaningful.</p>
+<h2>Crash rates per street mile</h2>
+<p>A rate divides the number of crashes by the miles of street and the number of years. Here, a rate is <strong>fatal and serious crashes per centerline mile per year</strong>, 2021–2025.</p>
+<p>Miles are centerline miles from IDOT's road layers, for streets inside Winnebago County, 2,402 in all. A divided road counts once for each direction, and ramps are included. Of the 825 fatal and serious crashes in the county in these years, 806 could be matched to one of those streets and are counted here. The other 19 were too far from a mapped road.</p>
+<h3>By type of road</h3>
+<figure class="chart" role="group" aria-label="Road type: miles versus crashes"><figcaption><b>Road type: miles versus crashes</b><span>Principal and minor arterials are 13% of the county's road miles and had 64% of fatal and serious crashes, 2021–2025.</span></figcaption><div class="ckey" aria-hidden="true"><span><i class="m"></i>Share of road miles</span><span><i class="c"></i>Share of fatal and serious crashes</span></div><div class="crow"><div class="clab">Interstate or freeway</div><div class="cbars"><div class="cb"><u class="m" style="width:3.1%"></u><em><span class="sr">Interstate or freeway: </span>3%<span class="sr"> of road miles</span></em></div><div class="cb"><u class="c" style="width:7.0%"></u><em>6%<span class="sr"> of fatal and serious crashes</span></em></div></div></div><div class="crow"><div class="clab">Principal arterial</div><div class="cbars"><div class="cb"><u class="m" style="width:6.7%"></u><em><span class="sr">Principal arterial: </span>6%<span class="sr"> of road miles</span></em></div><div class="cb"><u class="c" style="width:41.9%"></u><em>38%<span class="sr"> of fatal and serious crashes</span></em></div></div></div><div class="crow"><div class="clab">Minor arterial</div><div class="cbars"><div class="cb"><u class="m" style="width:8.2%"></u><em><span class="sr">Minor arterial: </span>7%<span class="sr"> of road miles</span></em></div><div class="cb"><u class="c" style="width:29.6%"></u><em>27%<span class="sr"> of fatal and serious crashes</span></em></div></div></div><div class="crow"><div class="clab">Collector</div><div class="cbars"><div class="cb"><u class="m" style="width:17.5%"></u><em><span class="sr">Collector: </span>16%<span class="sr"> of road miles</span></em></div><div class="cb"><u class="c" style="width:18.7%"></u><em>17%<span class="sr"> of fatal and serious crashes</span></em></div></div></div><div class="crow"><div class="clab">Local street</div><div class="cbars"><div class="cb"><u class="m" style="width:75.6%"></u><em><span class="sr">Local street: </span>68%<span class="sr"> of road miles</span></em></div><div class="cb"><u class="c" style="width:13.8%"></u><em>12%<span class="sr"> of fatal and serious crashes</span></em></div></div></div></figure><figure class="chart" role="group" aria-label="Crashes per mile per year, by road type"><figcaption><b>Crashes per mile per year, by road type</b><span>Fatal and serious-injury crashes per centerline mile per year, 2021–2025.</span></figcaption><div class="crow"><div class="clab">Interstate or freeway</div><div class="cbars"><div class="cb"><u class="c" style="width:27.3%"></u><em>0.15<span class="sr"> crashes per mile per year</span></em></div></div></div><div class="crow"><div class="clab">Principal arterial</div><div class="cbars"><div class="cb"><u class="c" style="width:76.4%"></u><em>0.42<span class="sr"> crashes per mile per year</span></em></div></div></div><div class="crow"><div class="clab">Minor arterial</div><div class="cbars"><div class="cb"><u class="c" style="width:43.6%"></u><em>0.24<span class="sr"> crashes per mile per year</span></em></div></div></div><div class="crow"><div class="clab">Collector</div><div class="cbars"><div class="cb"><u class="c" style="width:12.7%"></u><em>0.07<span class="sr"> crashes per mile per year</span></em></div></div></div><div class="crow"><div class="clab">Local street</div><div class="cbars"><div class="cb"><u class="c" style="width:1.8%"></u><em>0.01<span class="sr"> crashes per mile per year</span></em></div></div></div></figure><details class="tdet"><summary>Show the table</summary><div class="tbl"><table>
+<thead>
+<tr>
+<th>Road type</th>
+<th>Miles</th>
+<th>Share of road miles</th>
+<th>Fatal and serious crashes</th>
+<th>Crashes per mile per year</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Interstate or freeway</td>
+<td>66.2</td>
+<td>2.8%</td>
+<td>51</td>
+<td>0.15</td>
+</tr>
+<tr>
+<td>Principal arterial</td>
+<td>144.5</td>
+<td>6.0%</td>
+<td>304</td>
+<td>0.42</td>
+</tr>
+<tr>
+<td>Minor arterial</td>
+<td>178.1</td>
+<td>7.4%</td>
+<td>215</td>
+<td>0.24</td>
+</tr>
+<tr>
+<td>Collector</td>
+<td>379.2</td>
+<td>15.8%</td>
+<td>136</td>
+<td>0.07</td>
+</tr>
+<tr>
+<td>Local street</td>
+<td>1,633.6</td>
+<td>68.0%</td>
+<td>100</td>
+<td>0.01</td>
+</tr>
+</tbody>
+</table></div></details>
+<h3>By who owns the road</h3>
+<figure class="chart" role="group" aria-label="Road owner: miles versus crashes"><figcaption><b>Road owner: miles versus crashes</b><span>State roads are 8% of the county's road miles and had 28% of fatal and serious crashes, 2021–2025.</span></figcaption><div class="ckey" aria-hidden="true"><span><i class="m"></i>Share of road miles</span><span><i class="c"></i>Share of fatal and serious crashes</span></div><div class="crow"><div class="clab">State (IDOT)</div><div class="cbars"><div class="cb"><u class="m" style="width:8.6%"></u><em><span class="sr">State (IDOT): </span>8%<span class="sr"> of road miles</span></em></div><div class="cb"><u class="c" style="width:31.3%"></u><em>28%<span class="sr"> of fatal and serious crashes</span></em></div></div></div><div class="crow"><div class="clab">County</div><div class="cbars"><div class="cb"><u class="m" style="width:12.8%"></u><em><span class="sr">County: </span>11%<span class="sr"> of road miles</span></em></div><div class="cb"><u class="c" style="width:22.5%"></u><em>20%<span class="sr"> of fatal and serious crashes</span></em></div></div></div><div class="crow"><div class="clab">Municipal</div><div class="cbars"><div class="cb"><u class="m" style="width:55.9%"></u><em><span class="sr">Municipal: </span>50%<span class="sr"> of road miles</span></em></div><div class="cb"><u class="c" style="width:45.6%"></u><em>41%<span class="sr"> of fatal and serious crashes</span></em></div></div></div><div class="crow"><div class="clab">Township or road district</div><div class="cbars"><div class="cb"><u class="m" style="width:30.3%"></u><em><span class="sr">Township or road district: </span>27%<span class="sr"> of road miles</span></em></div><div class="cb"><u class="c" style="width:6.6%"></u><em>6%<span class="sr"> of fatal and serious crashes</span></em></div></div></div><div class="crow"><div class="clab">Toll, private and other</div><div class="cbars"><div class="cb"><u class="m" style="width:3.6%"></u><em><span class="sr">Toll, private and other: </span>3%<span class="sr"> of road miles</span></em></div><div class="cb"><u class="c" style="width:5.1%"></u><em>5%<span class="sr"> of fatal and serious crashes</span></em></div></div></div></figure><details class="tdet"><summary>Show the table</summary><div class="tbl"><table>
+<thead>
+<tr>
+<th>Owner</th>
+<th>Miles</th>
+<th>Share of road miles</th>
+<th>Fatal and serious crashes</th>
+<th>Crashes per mile per year</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>State (IDOT)</td>
+<td>186.1</td>
+<td>7.7%</td>
+<td>227</td>
+<td>0.24</td>
+</tr>
+<tr>
+<td>County</td>
+<td>275.6</td>
+<td>11.5%</td>
+<td>163</td>
+<td>0.12</td>
+</tr>
+<tr>
+<td>Municipal</td>
+<td>1,207.2</td>
+<td>50.3%</td>
+<td>331</td>
+<td>0.05</td>
+</tr>
+<tr>
+<td>Township or road district</td>
+<td>655.7</td>
+<td>27.3%</td>
+<td>48</td>
+<td>0.01</td>
+</tr>
+<tr>
+<td>Toll, private and other</td>
+<td>77.0</td>
+<td>3.2%</td>
+<td>37</td>
+<td>0.10</td>
+</tr>
+</tbody>
+</table></div></details>
+<p>Municipal means a city or village. Township includes road districts. "Toll, private and other" includes the Illinois Tollway, other state agencies and federal land.</p>
+<h3>Road type and owner together</h3>
+<p>Owner differences shrink once you compare similar roads. Principal arterials had about 0.37 crashes per mile per year on state roads, 0.48 on county roads and 0.50 on municipal roads. Much of the gap in the owner table above comes from the State owning more arterial miles.</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Road type</th>
+<th>Owner</th>
+<th>Miles</th>
+<th>Fatal and serious crashes</th>
+<th>Crashes per mile per year</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Interstate or freeway</td>
+<td>State (IDOT)</td>
+<td>30.9</td>
+<td>20</td>
+<td>0.13</td>
+</tr>
+<tr>
+<td>Interstate or freeway</td>
+<td>Toll, private and other</td>
+<td>35.3</td>
+<td>31</td>
+<td>0.18</td>
+</tr>
+<tr>
+<td>Principal arterial</td>
+<td>State (IDOT)</td>
+<td>84.8</td>
+<td>158</td>
+<td>0.37</td>
+</tr>
+<tr>
+<td>Principal arterial</td>
+<td>County</td>
+<td>29.7</td>
+<td>71</td>
+<td>0.48</td>
+</tr>
+<tr>
+<td>Principal arterial</td>
+<td>Municipal</td>
+<td>30.0</td>
+<td>75</td>
+<td>0.50</td>
+</tr>
+<tr>
+<td>Minor arterial</td>
+<td>State (IDOT)</td>
+<td>45.5</td>
+<td>40</td>
+<td>0.18</td>
+</tr>
+<tr>
+<td>Minor arterial</td>
+<td>County</td>
+<td>53.2</td>
+<td>50</td>
+<td>0.19</td>
+</tr>
+<tr>
+<td>Minor arterial</td>
+<td>Municipal</td>
+<td>70.8</td>
+<td>117</td>
+<td>0.33</td>
+</tr>
+<tr>
+<td>Collector</td>
+<td>County</td>
+<td>146.6</td>
+<td>41</td>
+<td>0.06</td>
+</tr>
+<tr>
+<td>Collector</td>
+<td>Municipal</td>
+<td>174.8</td>
+<td>70</td>
+<td>0.08</td>
+</tr>
+<tr>
+<td>Collector</td>
+<td>Township or road district</td>
+<td>45.6</td>
+<td>17</td>
+<td>0.07</td>
+</tr>
+<tr>
+<td>Local street</td>
+<td>State (IDOT)</td>
+<td>15.1</td>
+<td>2</td>
+<td>0.03</td>
+</tr>
+<tr>
+<td>Local street</td>
+<td>County</td>
+<td>46.2</td>
+<td>1</td>
+<td>0.00</td>
+</tr>
+<tr>
+<td>Local street</td>
+<td>Municipal</td>
+<td>931.6</td>
+<td>69</td>
+<td>0.01</td>
+</tr>
+<tr>
+<td>Local street</td>
+<td>Township or road district</td>
+<td>601.3</td>
+<td>23</td>
+<td>0.01</td>
+</tr>
+<tr>
+<td>Local street</td>
+<td>Toll, private and other</td>
+<td>39.3</td>
+<td>5</td>
+<td>0.03</td>
+</tr>
+</tbody>
+</table></div>
+<p>Small combinations, such as township collectors on tollways, are left out of this table because they have very little road or very few crashes.</p>
+<h3>For Rockford alone</h3>
+<p>Inside the Rockford city limits, 390 of the 404 fatal and serious crashes were matched to 799 miles of street. Principal arterials had 0.52 crashes per mile per year, minor arterials 0.32, collectors 0.08 and local streets 0.02. State roads had 0.40, county roads 0.36 and municipal streets 0.06.</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Road type</th>
+<th>Miles</th>
+<th>Fatal and serious crashes</th>
+<th>Crashes per mile per year</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Interstate or freeway</td>
+<td>18.8</td>
+<td>11</td>
+<td>0.12</td>
+</tr>
+<tr>
+<td>Principal arterial</td>
+<td>67.8</td>
+<td>176</td>
+<td>0.52</td>
+</tr>
+<tr>
+<td>Minor arterial</td>
+<td>67.6</td>
+<td>109</td>
+<td>0.32</td>
+</tr>
+<tr>
+<td>Collector</td>
+<td>104.8</td>
+<td>44</td>
+<td>0.08</td>
+</tr>
+<tr>
+<td>Local street</td>
+<td>540.5</td>
+<td>50</td>
+<td>0.02</td>
+</tr>
+</tbody>
+</table></div>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Owner</th>
+<th>Miles</th>
+<th>Fatal and serious crashes</th>
+<th>Crashes per mile per year</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>State (IDOT)</td>
+<td>56.0</td>
+<td>113</td>
+<td>0.40</td>
+</tr>
+<tr>
+<td>County</td>
+<td>32.4</td>
+<td>58</td>
+<td>0.36</td>
+</tr>
+<tr>
+<td>Municipal</td>
+<td>677.4</td>
+<td>213</td>
+<td>0.06</td>
+</tr>
+<tr>
+<td>Township or road district</td>
+<td>23.9</td>
+<td>4</td>
+<td>0.03</td>
+</tr>
+<tr>
+<td>Toll, private and other</td>
+<td>9.8</td>
+<td>2</td>
+<td>0.04</td>
+</tr>
+</tbody>
+</table></div>
+<p>Rockford has 43 Tier 1 stretches (21.5 miles) and 43 Tier 2 stretches (21.2 miles). Of Rockford's fatal and serious crashes, 60 of 80 involving walking or biking and 61 of 93 fatal crashes happened on these stretches.</p>
+<h2>How this differs from the traffic safety action plans</h2>
+<p>Region 1 Planning Council's Winnebago County Traffic Safety Action Plan (June 2025) and the City of Rockford Traffic Safety Action Plan (September 2025) each include a high-injury network. They are official planning documents. This map is a volunteer tool and does not replace them, and all three are meant to be read side by side. The main differences are below.</p>
+<ul>
+<li><strong>Years.</strong> Both plans use crashes from 2017 through 2022. This map uses 2021 through 2025.</li>
+<li><strong>Segments and ranking.</strong> The county plan joins roads between intersections of minor collectors or larger into segments, assigns each fatal or serious crash to the nearest segment within 150 feet, and sorts segments into five classes by crash frequency. This map slides a half-mile window along each road and uses two fixed thresholds, so it can show a corridor made of many short blocks.</li>
+<li><strong>Traffic volume.</strong> The county plan reports crash rates per 100 million vehicle miles traveled. This map does not use traffic volume, so it shows where crashes happened and not risk per trip.</li>
+<li><strong>Equity.</strong> The county plan compares its network with census tracts that have persistent poverty. This map has no equity overlay.</li>
+<li><strong>Place.</strong> The county plan covers all of Winnebago County and the City plan covers Rockford. This map covers the county and lets you choose a municipality.</li>
+</ul>
+<p>The results are similar where they overlap. Riverside Blvd and Forest Hills Rd in Loves Park rank at or near the top of both the county plan and this map.</p>
+<h2>What to keep in mind</h2>
+<ul>
+<li><strong>Small numbers.</strong> Many streets have only a few serious crashes in five years. Treat the tiers as groups, not as a precise ranking.</li>
+<li><strong>No traffic counts.</strong> These are rates per mile of street, not per mile driven, walked or biked. A busy street will show more crashes simply because more people use it. We did not have traffic volumes for every street.</li>
+<li><strong>Crashes, not causes.</strong> The high-injury network says where fatal and serious crashes have happened. It does not say why, and it does not say who was at fault.</li>
+<li><strong>Police-reported crashes only.</strong> Crashes that were not reported, and near misses, are not counted. Walking and biking crashes are more likely to be under-reported.</li>
+<li><strong>Reporting varies.</strong> Crash records come from many police agencies, and how fully each agency records severity and location can differ. Compare places with care.</li>
+<li><strong>Matching is imperfect.</strong> A crash on a side street near an arterial can be matched to the arterial. Each crash is matched to the nearest mapped road within 100 feet, and where it is within 25 feet of two roads, such as at an intersection, to the higher-class road. We used the same rule for every crash.</li>
+<li><strong>The half-mile window is a choice.</strong> A different window or a different cutoff would give a somewhat different high-injury network. In an earlier Rockford-only version, a ten-year network using a higher bar of 4 crashes in a half mile overlapped 84% of the five-year Tier 1 length, so the main corridors did not depend on the five years we chose.</li>
+<li><strong>Not a priority list.</strong> A safety program should also consider who lives nearby, how many people walk and bike there, and what can be fixed. This page does not.</li>
+</ul>
+<h2>Check or reproduce it</h2>
+<p>The crash files on the <a href="#data">Data</a> page have the crash location, severity and mode, the area, and the road type and road owner each crash was matched to. The road layers are IDOT's statewide functional class and jurisdiction layers. Boundaries come from the City of Rockford and the U.S. Census Bureau. Write to us from the <a href="#contact">Contact</a> page if you would like the street-level results behind the tables.</p>
+<p>The high-injury network will be rebuilt when IDOT publishes the 2026 crashes.</p>
+<footer class="foot">An initiative of I Bike Rockford, a volunteer group. Not an official City of Rockford or IDOT product.</footer>
+</article></section>
+
+<section class="view" id="view-about" hidden aria-labelledby="about-h"><article class="doc">
+<a class="back" href="#">← Back to the map</a>
+<h1 id="about-h">About the data, methodology and limitations</h1>
+<h2>Who makes this map</h2>
+<p>This map is an initiative of I Bike Rockford, a volunteer group. It is not a product of the City of Rockford, the Illinois Department of Transportation (IDOT), or any employer or firm. It is offered in good faith as a public resource.</p>
+<h2>What the map shows</h2>
+<p>Crashes in Rockford from 2006 through 2025, and in the rest of Winnebago County (its other cities and villages and the unincorporated areas) from 2014 through 2025, that were reported to police and entered in the State of Illinois crash database. The map highlights crashes in which someone was killed or seriously injured, with a focus on people walking and biking.</p>
+<p>Beyond mere data points, each dot represents a person: a cherished friend, a beloved family member. The map shows attributes gathered from public records. </p>
+<h2>Where the data comes from</h2>
+<ul>
+<li><strong>Crash records.</strong> Illinois Department of Transportation (IDOT) statewide crash data, 2006–2025. Rockford crashes were selected from IDOT's files. Records for 2016–2025 come from IDOT's Safety Data Mart extracts. Records for 2006–2015 come from IDOT's earlier GIS crash extracts. This map contains IDOT crash data only, apart from the person-level facts about fatal crashes described next.</li>
+<li><strong>Person-level facts about deaths (role and age band).</strong> the U.S. National Highway Traffic Safety Administration's Fatality Analysis Reporting System (FARS), 2006–2024. IDOT's public crash files describe the crash, not the people in it, so for fatal crashes we matched IDOT records to FARS by date, time and location. Of 412 IDOT fatal crashes on this map in 2006–2024, 403 (98%) matched confidently, and in every one of those both sources record the same number of people killed. The other nine had no confident match and show no person-level facts. FARS does not contain names. It covers deaths only (not injuries), and 2025 is not yet published, so 2025 fatal crashes show no person-level facts.</li>
+<li><strong>City limits.</strong> City of Rockford city limits, from the City's public GIS service (retrieved October 2026).</li>
+<li><strong>Data as of.</strong> October 2026. IDOT's most recent extract (2025) is dated July 22, 2026. IDOT revises past years after the fact, so counts can change slightly. The map ends at 2025. Data for 2026 will be added when IDOT publishes it.</li>
+</ul>
+<h2>How we prepared it</h2>
+<p>IDOT changed its data layout several times between 2006 and 2025. We combined all years into one consistent format: the same field names, the same category labels, and one location system. We repaired formatting errors in IDOT's files, removed 13 duplicate records, and tested every location against the city and county boundaries. Every field is described on the Data Dictionary page.</p>
+<h2>What the terms mean</h2>
+<p>Crash severity follows the standard KABCO scale and is assigned by the police officer at the scene, based on the most severe injury in the crash:</p>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>K</td>
+<td>Fatal: a person died</td>
+</tr>
+<tr>
+<td>A</td>
+<td>Serious injury: an incapacitating injury (for example, a person who could not walk away)</td>
+</tr>
+<tr>
+<td>B</td>
+<td>Minor injury: visible, non-incapacitating injury</td>
+</tr>
+<tr>
+<td>C</td>
+<td>Possible injury: complaint of pain, no visible injury</td>
+</tr>
+<tr>
+<td>O</td>
+<td>No injury (property damage only)</td>
+</tr>
+</tbody>
+</table></div>
+<p>"Pedestrian" and "bicycle" crashes are crashes IDOT classifies as a pedestrian or pedalcyclist collision. "Serious injury crash" means a crash with at least one A-level injury, not the number of people seriously injured.</p>
+<h2>What this map cannot tell you</h2>
+<p><strong>These numbers are a minimum, not a complete count.</strong></p>
+<ul>
+<li><strong>Only police-reported crashes are included.</strong> Many crashes involving people walking and biking are never reported: when no one calls the police, when the person is hurt but leaves, or when no motor vehicle stops. Crashes reported later by phone or online are more likely to be missing or incomplete. The data to estimate how many are missed does not exist.</li>
+<li><strong>Near misses and falls are invisible.</strong> A person who swerves to avoid a car, hits a pothole, or falls off a bike and is hurt, without colliding with anything or filing a report, does not appear. Neither do the many close calls that never become a crash. A street can feel dangerous long before it shows up in this data.</li>
+<li><strong>Severity is an officer's judgment at the scene,</strong> not a medical finding. Injuries that prove more serious later may not be updated, and a crash can be reclassified after a death that occurs days later.</li>
+<li><strong>Locations are approximate.</strong> IDOT often places crashes at an intersection's center or along a street segment. Many crashes can share one point. Where that happens the map groups them and shows a count. A dot is not an exact spot on the pavement.</li>
+<li><strong>People walking and biking are identified by the type of first collision</strong> recorded in the report. Some crashes that injured a pedestrian or cyclist may be coded differently and are not counted as such here.</li>
+<li><strong>No fault is assigned.</strong> The map does not show who caused a crash.</li>
+<li><strong>Recent years can change.</strong> The most recent data is the least complete.</li>
+<li><strong>Counts are not rates.</strong> More crashes on a street can simply mean more people use it. This map shows counts, not risk per mile traveled or per person.</li>
+<li><strong>Trends need care.</strong> The number of crashes and the way they are classified shift over 20 years because of changing reporting practices, forms, and events such as the 2020 pandemic. Dips and spikes (for example, an unusually high number of deaths in 2013 and 2021) should be checked against other sources before drawing conclusions.</li>
+<li><strong>City limits.</strong> about 3% of the crashes IDOT labels "Rockford" (2,251 of about 82,000) plot outside the current city limits, most of them within 150 feet of the line, on streets that run along the boundary. They are shown on the map as faded points and are left out of the headline totals unless you choose to include them. About 1,300 crashes since 2016 plot inside the city limits but are labeled by IDOT as unincorporated or as another town. They are not shown.</li>
+<li><strong>Street names</strong> come from IDOT for 2025 only. For earlier years the map shows the location but not a street name.</li>
+<li><strong>FARS differences.</strong> FARS counts a death if it happens within 30 days of the crash and applies its own coding rules, so its counts can differ from IDOT's. Roles (for example, person walking) come from FARS where matched and can differ from the collision type IDOT records.</li>
+</ul>
+<h2>Using this data</h2>
+<p>You are welcome to use the map and the downloadable data for advocacy, research, planning and reporting. Please credit "I Bike Rockford, using Illinois Department of Transportation crash data" and note the data-as-of date. Crash records are from IDOT. This map is not an official IDOT or City product, and its figures may differ from official statistics.</p>
+<h2>Language we use</h2>
+<p>We say "crash," not "accident," because crashes have causes that can be addressed. We say "person killed" or "person seriously injured."</p>
+<footer class="foot">An initiative of I Bike Rockford, a volunteer group. Not an official City of Rockford or IDOT product.</footer>
+</article></section>
+
+<section class="view" id="view-data" hidden aria-labelledby="data-h"><article class="doc">
+<a class="back" href="#">← Back to the map</a>
+<h1 id="data-h">Data</h1>
+<p>Everything on the map comes from crash records of the Illinois Department of Transportation (IDOT): Rockford 2006–2025 and the rest of Winnebago County 2014–2025, plus person-level facts about fatal crashes from the federal FARS database. Download the crash files to explore them yourself. Each file has one row per crash, and the AREA column says where it happened.</p>
+<div class="dl"><a href="downloads/Winnebago_County_Crashes_2006-2025.zip" download>All of Winnebago County, 2006–2025 (ZIP, one CSV, 107,953 rows)</a><a href="downloads/Rockford_Crashes_2016-2025.csv" download>Rockford, 2016–2025 (CSV)</a><a href="downloads/Rockford_Crashes_2006-2015.csv" download>Rockford, 2006–2015 (CSV)</a><a href="downloads/Winnebago_County_Outside_Rockford_Crashes_2014-2025.csv" download>Rest of Winnebago County, 2014–2025 (CSV)</a></div>
+<p class="note"><b>Please credit:</b> “I Bike Rockford, using Illinois Department of Transportation crash data.” Rockford is counted by the city boundary, so a crash IDOT labels “Rockford” that plots outside the limits is listed under the place where it plots. Records before 2014 exist for Rockford only. 167 crashes have no usable location and are in the files but not on the map.</p>
+
+<h2>Data dictionary</h2>
+<div class="tbl"><table>
+<thead>
+<tr>
+<th>Field</th>
+<th>Format</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>CRASH_ID</td>
+<td>Text (20)</td>
+<td>Unique crash identifier. 2016–2025: IDOT Illinois Crash Number (ICN), 12 digits, e.g. 202501010371. 2006–2015: legacy report ID, format YY-NNNNNNN, e.g. 06-1268553. Unique within every layer. Use it as the key for joining other data.</td>
+</tr>
+<tr>
+<td>SRC</td>
+<td>Text (20)</td>
+<td>Source batch the record came from: 'Legacy 2006-2015' (older IDOT GIS extracts) or 'IDOT SDM extract' (Safety Data Mart statewide extracts, 2016–2025).</td>
+</tr>
+<tr>
+<td>YEAR</td>
+<td>Integer (4)</td>
+<td>Crash year, four digits (e.g. 2019).</td>
+</tr>
+<tr>
+<td>CRASH_DATE</td>
+<td>Text (10)</td>
+<td>Crash date as ISO text YYYY-MM-DD (e.g. 2025-12-31). Built from year, month and day so it reads the same in every year.</td>
+</tr>
+<tr>
+<td>MONTH</td>
+<td>Integer (2)</td>
+<td>Month of crash, 1–12.</td>
+</tr>
+<tr>
+<td>DAY</td>
+<td>Integer (2)</td>
+<td>Day of month, 1–31.</td>
+</tr>
+<tr>
+<td>HOUR</td>
+<td>Integer (2)</td>
+<td>Hour of crash on a 24-hour clock, 0–23 (0 = midnight hour). Minutes are not carried. IDOT dropped crash minute from the 2025 extract.</td>
+</tr>
+<tr>
+<td>DOW</td>
+<td>Text (9)</td>
+<td>Day of week, full name (Monday … Sunday).</td>
+</tr>
+<tr>
+<td>SEVERITY</td>
+<td>Text (1)</td>
+<td>Crash severity on the KABCO scale, by the most severe injury in the crash: K = fatal, A = suspected serious injury, B = suspected minor injury, C = possible injury, O = no injury (property damage only), U = unknown (record had no severity).</td>
+</tr>
+<tr>
+<td>SEV_LABEL</td>
+<td>Text (34)</td>
+<td>Plain-language label for SEVERITY: Fatal, A - Serious injury, B - Minor injury, C - Possible injury, No injury (property damage only), Unknown.</td>
+</tr>
+<tr>
+<td>N_KILLED</td>
+<td>Integer (3)</td>
+<td>Number of people killed in the crash.</td>
+</tr>
+<tr>
+<td>N_INJURED</td>
+<td>Integer (3)</td>
+<td>Total number of people injured in the crash, all severities A+B+C (does not include fatalities).</td>
+</tr>
+<tr>
+<td>N_A_INJ</td>
+<td>Integer (3)</td>
+<td>Number of people with A (serious) injuries. 2016–2025 only. Blank for 2006–2015 because the legacy extracts carry only a total.</td>
+</tr>
+<tr>
+<td>N_B_INJ</td>
+<td>Integer (3)</td>
+<td>Number of people with B (minor) injuries. 2016–2025 only.</td>
+</tr>
+<tr>
+<td>N_C_INJ</td>
+<td>Integer (3)</td>
+<td>Number of people with C (possible) injuries. 2016–2025 only.</td>
+</tr>
+<tr>
+<td>N_VEH</td>
+<td>Integer (2)</td>
+<td>Number of motor vehicles involved.</td>
+</tr>
+<tr>
+<td>COLL_TYPE</td>
+<td>Text (30)</td>
+<td>Type of first collision / first harmful event as coded by IDOT, harmonized across eras: Angle, Animal, Fixed Object, Front to Front, Front to Rear, Other Non-Collision, Other Object, Overturned, Parked Motor Vehicle, Pedalcyclist, Pedestrian, Rear to Front, Rear to Rear, Rear to Side, Sideswipe Opposite Direction, Sideswipe Same Direction, Train, Turning, Unknown.</td>
+</tr>
+<tr>
+<td>MODE</td>
+<td>Text (10)</td>
+<td>Vulnerable-road-user flag derived from COLL_TYPE: 'Pedestrian' (COLL_TYPE = Pedestrian), 'Bicycle' (COLL_TYPE = Pedalcyclist), else 'Other'. LIMITATION: based on first collision type only. A crash where a pedestrian or cyclist was hurt but the first event was something else is coded 'Other'.</td>
+</tr>
+<tr>
+<td>INTERSEC</td>
+<td>Text (1)</td>
+<td>Intersection-related crash: Y or N (as coded by the reporting officer).</td>
+</tr>
+<tr>
+<td>HIT_RUN</td>
+<td>Text (1)</td>
+<td>Hit-and-run: Y or N. 2016–2025 only. Blank for 2006–2015.</td>
+</tr>
+<tr>
+<td>CAUSE1</td>
+<td>Text (80)</td>
+<td>Primary contributing circumstance coded by the reporting officer (e.g. 'Failing to Yield Right of Way'). 2016–2025 only. Officer-coded and preliminary. NOT a finding of fault.</td>
+</tr>
+<tr>
+<td>CAUSE2</td>
+<td>Text (80)</td>
+<td>Secondary contributing circumstance, same coding as CAUSE1. 2016–2025 only. '(N/A)' means none recorded.</td>
+</tr>
+<tr>
+<td>WEATHER</td>
+<td>Text (24)</td>
+<td>Weather condition: Clear, Cloudy/Overcast, Rain, Snow, Blowing Snow, Sleet/Hail, Freezing Rain/Drizzle, Fog/Smoke/Haze, Severe Cross Wind, Other, Unknown.</td>
+</tr>
+<tr>
+<td>LIGHTING</td>
+<td>Text (24)</td>
+<td>Lighting condition: Daylight, Dawn, Dusk, Darkness, Darkness - Lighted Road (written 'Darkness, Lighted Road'), Unknown.</td>
+</tr>
+<tr>
+<td>SURF_COND</td>
+<td>Text (20)</td>
+<td>Road surface condition: Dry, Wet, Snow or Slush, Ice, Sand, Mud, Dirt, Other, Unknown.</td>
+</tr>
+<tr>
+<td>RD_DEFECT</td>
+<td>Text (24)</td>
+<td>Road defect: No Defects, Worn Surface, Rut, Holes, Shoulders, Debris On Roadway, Construction Zone, Maintenance Zone, Utility Work Zone, Work Zone - Unknown, Other, Unknown. (Work-zone values appear only in the older extracts. Newer extracts record work zones separately, see WORKZONE.)</td>
+</tr>
+<tr>
+<td>TRAF_CNTRL</td>
+<td>Text (28)</td>
+<td>Traffic control device at the crash location: No Controls, Traffic Signal, Stop Sign/Flasher, Yield, Lane Use Marking, School Zone, Pedestrian Crossing Sign, Flashing Control Signal, RR Crossing Gate/Sign, Other RR Crossing, Police/Flagman, No Passing, Delineators, Other Warning Sign, Other Regulatory Sign, Other, Unknown.</td>
+</tr>
+<tr>
+<td>TC_FUNC</td>
+<td>Text (26)</td>
+<td>Whether the traffic control was working: Functioning Properly, Functioning Improperly, Not Functioning, Worn Reflective Material, Missing, Other, Unknown. 2016–2025 only. Blank when there was no control or for 2006–2015.</td>
+</tr>
+<tr>
+<td>WORKZONE</td>
+<td>Text (1)</td>
+<td>Crash in a work zone: Y or N. Blank = could not be determined (about 680 records in 2019 where IDOT's source file is misaligned).</td>
+</tr>
+<tr>
+<td>ROUTE</td>
+<td>Text (12)</td>
+<td>IDOT route number of the road (0 = none/local street). Numbers only, not street names.</td>
+</tr>
+<tr>
+<td>STREET</td>
+<td>Text (60)</td>
+<td>Street name of the crash location. Only available in the 2025 extract. Blank for all other years.</td>
+</tr>
+<tr>
+<td>AT_INTERS</td>
+<td>Text (80)</td>
+<td>Nearest intersection as 'Street A/Street B'. 2025 only. Blank otherwise.</td>
+</tr>
+<tr>
+<td>LAT</td>
+<td>Decimal (12,7)</td>
+<td>Latitude, WGS84 decimal degrees, computed from the point geometry.</td>
+</tr>
+<tr>
+<td>LON</td>
+<td>Decimal (12,7)</td>
+<td>Longitude, WGS84 decimal degrees, computed from the point geometry.</td>
+</tr>
+<tr>
+<td>XY_QA</td>
+<td>Text (32)</td>
+<td>Location quality flag. 'OK' = normal. 'FROM_IDOT_TS_XY' = geometry was invalid so IDOT's own coordinate columns were used. 'CHECK_OUTSIDE_EXPECTED_EXTENT' = IDOT assigns it to Rockford but the point is outside the expected city area. Verify before mapping. 'NO_LOCATION' = no usable coordinates (such crashes appear in the CSV but are not mapped).</td>
+</tr>
+<tr>
+<td>AREA</td>
+<td>Text</td>
+<td>Where the crash point falls, decided by its location and not by the label IDOT used: Rockford (inside the City of Rockford limits), another city or village in Winnebago County, or Unincorporated Winnebago County. For the few crashes with no usable location, or a point outside the county line, the area is taken from IDOT's city label.</td>
+</tr>
+<tr>
+<td>AREA_SRC</td>
+<td>Text</td>
+<td>How AREA was decided: 'geometry' (the crash point was tested against city, village and county boundaries) or 'idot_label' (no usable location, so IDOT's city label was used).</td>
+</tr>
+<tr>
+<td>IN_CITY_OF_ROCKFORD</td>
+<td>Text (1)</td>
+<td>Y if AREA is Rockford, N otherwise.</td>
+</tr>
+<tr>
+<td>IDOT_CITY</td>
+<td>Text</td>
+<td>The city or village name in IDOT's own record. It is a reporting label, not a map location, so it can differ from AREA. Blank for 2006–2013.</td>
+</tr>
+<tr>
+<td>TOWNSHIP</td>
+<td>Text</td>
+<td>Township name in IDOT's record. Blank for 2006–2013.</td>
+</tr>
+<tr>
+<td>AGENCY_TYPE</td>
+<td>Text</td>
+<td>Type of reporting police agency in IDOT's record. Blank for 2006–2013.</td>
+</tr>
+<tr>
+<td>ROAD_CLASS</td>
+<td>Text</td>
+<td>Functional class of the road the crash was matched to, from the Illinois Department of Transportation (IDOT) functional class layer: Interstate or freeway, Principal arterial, Minor arterial, Collector or Local street. Matched by location to the nearest mapped road within 100 feet. Where a crash is within 25 feet of more than one road (such as at an intersection) the higher-class road is used. Blank if no road is within 100 feet.</td>
+</tr>
+<tr>
+<td>ROAD_OWNER</td>
+<td>Text</td>
+<td>Who has jurisdiction over that road, from the IDOT jurisdiction layer: State (IDOT), County, Municipal (any city or village), Township or road district, or Toll, private and other. Matched the same way as ROAD_CLASS. Blank if no road is within 100 feet.</td>
+</tr>
+<tr>
+<td>FARS_MATCH</td>
+<td>Text (9)</td>
+<td>For fatal crashes in 2006–2024 matched to the federal FARS database: 'confirmed' (same date, within one hour and 0.25 mile) or 'probable' (slightly looser). Blank = not matched, not fatal, or 2025 (FARS has not published 2025).</td>
+</tr>
+<tr>
+<td>FARS_ROLES_AGE</td>
+<td>Text</td>
+<td>People killed, from FARS: role (driver, passenger, person walking, person bicycling) and five- or ten-year age band, separated by semicolons when more than one person died. No names.</td>
+</tr>
+<tr>
+<td>FARS_SEX</td>
+<td>Text</td>
+<td>Sex of each person killed, from FARS, in the same order as FARS_ROLES_AGE.</td>
+</tr>
+<tr>
+<td>DRUNK_DRIVER_INVOLVED</td>
+<td>Text (1)</td>
+<td>Y if FARS records at least one driver with a blood alcohol concentration of 0.08 or higher in the crash; N otherwise. Matched fatal crashes only.</td>
+</tr>
+</tbody>
+</table></div>
+<h2>Notes</h2>
+<ul>
+<li><strong>Coordinates.</strong> LAT and LON are WGS84 decimal degrees.</li>
+<li><strong>Blank values.</strong> a blank means the item was not collected for that year (for example, cause codes before 2016) or was not recorded. It does not mean "no".</li>
+<li><strong>Category labels</strong> were standardized across years because IDOT changed its wording over time. The original wording is preserved where it carries a different meaning.</li>
+<li><strong>Source.</strong> Illinois Department of Transportation crash data, 2006–2025.</li>
+</ul>
+<footer class="foot">An initiative of I Bike Rockford, a volunteer group. Not an official City of Rockford or IDOT product.</footer>
+</article></section>
+
+<section class="view" id="view-contact" hidden aria-labelledby="contact-h"><article class="doc">
+<a class="back" href="#">← Back to the map</a>
+<h1 id="contact-h">Contact</h1>
+<h2>Get in touch</h2>
+<p>This map is an initiative of I Bike Rockford, a volunteer group. We read every message and reply as volunteers' time allows.</p>
+<p><strong>Email.</strong> <a href="mailto:ibikerockford@gmail.com">ibikerockford@gmail.com</a></p>
+<h2>What to write to us about</h2>
+<ul>
+<li><strong>A crash in the wrong place, or a crash that seems to be missing.</strong> Please include the date and location, or the crash ID shown in the popup. Corrections to the official record have to come from the police or IDOT, but we can note issues on the map.</li>
+<li><strong>A question about the data or how to use it.</strong></li>
+<li><strong>A request about a crash that involved you or someone you love.</strong> If seeing a crash on this map is upsetting or you would like it handled differently, tell us. We will listen, and we will consider requests to adjust how a crash is shown. You do not need to explain.</li>
+<li><strong>Ideas, feedback or help.</strong> We welcome them.</li>
+</ul>
+<h2>Downloading the data</h2>
+<p>The crash data on this map is available on the Data page. All crash records come from the Illinois Department of Transportation.</p>
+<footer class="foot">An initiative of I Bike Rockford, a volunteer group. Not an official City of Rockford or IDOT product.</footer>
+</article></section>
+
+<script src="vendor/leaflet/leaflet.js"></script>
+<script src="js/config.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
